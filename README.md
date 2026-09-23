@@ -1,5 +1,7 @@
 # SnapSplit
 
+**Live prototype:** https://glossy-scaled-nn65a3w.shipstatic.com
+
 **Scan it. Split it. Pay it.**
 
 SnapSplit is an interactive product-management prototype for simplifying group expenses. It combines receipt scanning, item-level splitting, group balances, payment flows, reminders, notifications, and group chat in one experience.
