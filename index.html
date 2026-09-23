@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#111827" />
+  <title>SnapSplit — Group expenses, settled</title>
+  <style>
+:root {
+  --bg: #f5f7fb;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --ink: #151923;
+  --muted: #667085;
+  --line: #e6eaf0;
+  --brand: #5c54f6;
+  --brand-dark: #4740dc;
+  --brand-soft: #eeedff;
+  --green: #1b9b68;
+  --green-soft: #eaf9f2;
+  --red: #d84c57;
+  --red-soft: #fff0f1;
+  --amber: #b46d00;
+  --amber-soft: #fff5df;
+  --shadow: 0 18px 50px rgba(16, 24, 40, .08);
+  --radius: 18px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+
+.app-shell { min-height: 100vh; display: grid; grid-template-columns: 260px minmax(0, 1fr); }
+.sidebar { position: sticky; top: 0; height: 100vh; padding: 24px 18px; background: #111827; color: #fff; display: flex; flex-direction: column; z-index: 30; }
+.brand-row { display: flex; gap: 12px; align-items: center; padding: 4px 8px 26px; }
+.brand-mark { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; background: linear-gradient(135deg, #7c73ff, #4e46e7); box-shadow: 0 8px 30px rgba(92,84,246,.35); }
+.brand-name { font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+.brand-tag { font-size: 11px; color: #a8b0bf; margin-top: 2px; }
+.nav-list { display: grid; gap: 7px; }
+.nav-item { border: 0; border-radius: 12px; padding: 12px 13px; color: #b7c0d0; background: transparent; text-align: left; display: flex; align-items: center; gap: 11px; transition: .2s; }
+.nav-item:hover { color: #fff; background: rgba(255,255,255,.06); }
+.nav-item.active { color: #fff; background: rgba(124,115,255,.18); box-shadow: inset 0 0 0 1px rgba(124,115,255,.18); }
+.nav-item span { width: 20px; text-align: center; }
+.mini-badge { margin-left: auto; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center; background: #ff6571; color: #fff; font-size: 11px; }
+.sidebar-card { margin-top: auto; border-radius: 16px; padding: 16px; background: linear-gradient(160deg, rgba(124,115,255,.18), rgba(255,255,255,.05)); border: 1px solid rgba(255,255,255,.08); }
+.sidebar-card h3 { margin: 5px 0 8px; font-size: 15px; }
+.sidebar-card p { margin: 0; font-size: 12px; line-height: 1.55; color: #adb6c7; }
+.sidebar-card .eyebrow { color: #938cff; }
+.text-button { border: 0; padding: 0; color: #b7b2ff; background: transparent; margin-top: 12px; font-weight: 700; font-size: 12px; }
+.sidebar-footer { display: flex; gap: 10px; align-items: center; padding: 18px 8px 0; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: #e9e7ff; color: #4c44de; font-size: 12px; font-weight: 800; flex: 0 0 auto; }
+.user-meta { display: flex; flex-direction: column; min-width: 0; }
+.user-meta strong { font-size: 13px; }
+.user-meta span { color: #8f9aae; font-size: 11px; }
+.icon-button { border: 0; background: transparent; color: inherit; border-radius: 10px; padding: 8px; }
+
+.main { min-width: 0; }
+.topbar { height: 98px; padding: 21px 34px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); background: rgba(245,247,251,.88); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 20; }
+.topbar h1 { margin: 3px 0 0; font-size: 24px; letter-spacing: -.035em; }
+.eyebrow { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.topbar-actions { display: flex; gap: 10px; align-items: center; }
+.demo-pill { font-size: 12px; padding: 8px 11px; color: var(--muted); background: #fff; border: 1px solid var(--line); border-radius: 999px; }
+.primary-button, .secondary-button, .danger-button, .ghost-button { border-radius: 11px; padding: 10px 14px; font-weight: 750; border: 0; transition: .18s; }
+.primary-button { background: var(--brand); color: #fff; box-shadow: 0 7px 18px rgba(92,84,246,.18); }
+.primary-button:hover { background: var(--brand-dark); transform: translateY(-1px); }
+.secondary-button { background: var(--brand-soft); color: var(--brand-dark); }
+.ghost-button { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.danger-button { background: var(--red-soft); color: var(--red); }
+.small-button { padding: 7px 10px; font-size: 12px; border-radius: 9px; }
+
+.view { display: none; padding: 28px 34px 50px; }
+.active-view { display: block; }
+.grid { display: grid; gap: 18px; }
+.stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dashboard-grid { grid-template-columns: minmax(0, 1.55fr) minmax(300px, .8fr); align-items: start; margin-top: 18px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 1px 1px rgba(16,24,40,.02); }
+.stat-card { padding: 20px; position: relative; overflow: hidden; }
+.stat-label { color: var(--muted); font-size: 12px; font-weight: 700; }
+.stat-value { font-size: 30px; font-weight: 850; letter-spacing: -.05em; margin-top: 7px; }
+.stat-meta { margin-top: 7px; color: var(--muted); font-size: 12px; }
+.stat-action { margin-top: 14px; border: 0; padding: 0; background: transparent; color: var(--brand-dark); font-size: 12px; font-weight: 800; text-align: left; }
+.stat-action:hover { text-decoration: underline; }
+.stat-action.danger-link { color: var(--red); }
+.stat-icon { position: absolute; right: 18px; top: 18px; width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-2); }
+.green { color: var(--green); }
+.red { color: var(--red); }
+.section-card { padding: 22px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+.section-head h2, .section-head h3 { margin: 0; letter-spacing: -.025em; }
+.section-head h2 { font-size: 18px; }
+.section-head h3 { font-size: 15px; }
+.section-sub { color: var(--muted); font-size: 12px; margin-top: 3px; }
+
+.group-list { display: grid; gap: 10px; }
+.group-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 14px; border-radius: 14px; border: 1px solid var(--line); background: #fff; transition: .18s; }
+.group-row:hover { border-color: #cbc7ff; transform: translateY(-1px); box-shadow: 0 8px 28px rgba(16,24,40,.05); }
+.group-icon { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; background: var(--brand-soft); }
+.group-row h4 { margin: 0; font-size: 14px; }
+.group-row p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.money-state { text-align: right; }
+.money-state strong { display: block; font-size: 13px; }
+.money-state span { font-size: 11px; color: var(--muted); }
+
+.quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.quick-action { border: 1px solid var(--line); border-radius: 14px; background: #fff; padding: 14px; text-align: left; }
+.quick-action .qa-icon { width: 32px; height: 32px; display: grid; place-items: center; background: var(--brand-soft); border-radius: 10px; margin-bottom: 12px; }
+.quick-action strong { display: block; font-size: 13px; }
+.quick-action span { display: block; color: var(--muted); font-size: 11px; margin-top: 4px; line-height: 1.4; }
+.insight-card { margin-top: 14px; padding: 16px; border-radius: 14px; background: linear-gradient(135deg, #161a27, #2a2d45); color: #fff; }
+.insight-card .eyebrow { color: #aca7ff; }
+.insight-card h3 { margin: 7px 0 6px; font-size: 15px; }
+.insight-card p { margin: 0; font-size: 12px; color: #c9cfdb; line-height: 1.5; }
+
+.groups-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.group-card { padding: 20px; min-height: 205px; display: flex; flex-direction: column; }
+.group-card .group-icon { margin-bottom: 16px; }
+.group-card h3 { margin: 0 0 5px; font-size: 17px; }
+.group-card p { margin: 0; font-size: 12px; color: var(--muted); }
+.group-card-footer { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.avatar-stack { display: flex; }
+.avatar-stack .mini-avatar { margin-left: -7px; border: 2px solid #fff; }
+.avatar-stack .mini-avatar:first-child { margin-left: 0; }
+.mini-avatar { width: 29px; height: 29px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: 800; color: #4d46c7; background: #ebe9ff; }
+
+.detail-hero { padding: 22px; display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; }
+.detail-title { display: flex; gap: 14px; }
+.detail-title h2 { margin: 0; font-size: 22px; letter-spacing: -.04em; }
+.detail-title p { margin: 5px 0 0; font-size: 12px; color: var(--muted); }
+.hero-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.balance-banner { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.balance-tile { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; }
+.balance-tile span { display: block; font-size: 11px; color: var(--muted); }
+.balance-tile strong { display: block; margin-top: 5px; font-size: 19px; }
+.tabs { display: flex; gap: 7px; margin: 18px 0 14px; overflow: auto; }
+.tab { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 8px 12px; font-size: 12px; font-weight: 750; color: var(--muted); white-space: nowrap; }
+.tab.active { color: var(--brand-dark); border-color: #c9c5ff; background: var(--brand-soft); }
+.detail-grid { grid-template-columns: minmax(0, 1.4fr) minmax(280px, .75fr); align-items: start; }
+.member-list, .expense-list, .activity-list, .notification-list { display: grid; gap: 9px; }
+.member-row, .expense-row, .activity-row, .notification-row { border: 1px solid var(--line); border-radius: 13px; padding: 13px; display: flex; gap: 11px; align-items: center; background: #fff; }
+.member-row .mini-avatar { flex: 0 0 auto; }
+.member-info, .activity-info { min-width: 0; flex: 1; }
+.member-info strong, .expense-row strong, .activity-info strong { display: block; font-size: 13px; }
+.member-info span, .expense-row span, .activity-info span { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+.member-actions { display: flex; gap: 6px; }
+.status-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 5px 8px; font-size: 10px; font-weight: 800; }
+.status-pill.owed { background: var(--green-soft); color: var(--green); }
+.status-pill.owe { background: var(--red-soft); color: var(--red); }
+.status-pill.settled { background: #eef1f5; color: #667085; }
+.status-pill.pending { background: var(--amber-soft); color: var(--amber); }
+
+.chat-box { display: flex; flex-direction: column; height: 520px; }
+.chat-messages { flex: 1; overflow: auto; padding: 8px 2px 12px; display: flex; flex-direction: column; gap: 10px; }
+.message { max-width: 76%; padding: 10px 12px; border-radius: 14px 14px 14px 4px; background: #f2f4f7; font-size: 12px; line-height: 1.45; }
+.message.me { align-self: flex-end; color: #fff; background: var(--brand); border-radius: 14px 14px 4px 14px; }
+.message.system { align-self: center; max-width: 88%; background: var(--amber-soft); color: #7e5200; border-radius: 999px; font-size: 10px; text-align: center; }
+.message small { display: block; margin-top: 4px; opacity: .65; font-size: 9px; }
+.chat-input-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.input { width: 100%; border: 1px solid var(--line); border-radius: 11px; padding: 10px 11px; background: #fff; color: var(--ink); outline: none; }
+.input:focus { border-color: #aaa4ff; box-shadow: 0 0 0 3px rgba(92,84,246,.08); }
+label.field-label { display: block; font-size: 11px; color: var(--muted); font-weight: 750; margin-bottom: 6px; }
+.field { margin-bottom: 14px; }
+
+.scan-layout { grid-template-columns: minmax(0, 1.1fr) minmax(300px, .75fr); align-items: start; }
+.stepper { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+.step-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line); background: #fff; font-size: 11px; font-weight: 800; color: var(--muted); }
+.step-dot.active, .step-dot.done { background: var(--brand); color: #fff; border-color: var(--brand); }
+.step-line { width: 32px; height: 1px; background: var(--line); }
+.upload-zone { border: 1.5px dashed #c8ccd5; border-radius: 16px; padding: 34px 20px; display: grid; place-items: center; text-align: center; background: var(--surface-2); transition: .2s; }
+.upload-zone:hover { border-color: #9f99ff; background: #f7f6ff; }
+.upload-icon { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; background: var(--brand-soft); color: var(--brand); font-size: 24px; margin-bottom: 12px; }
+.upload-zone h3 { margin: 0 0 5px; font-size: 15px; }
+.upload-zone p { margin: 0; font-size: 12px; color: var(--muted); }
+.receipt-preview { width: 100%; max-height: 280px; object-fit: contain; border-radius: 12px; border: 1px solid var(--line); background: #fff; }
+.scan-status { display: flex; gap: 9px; align-items: center; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--green-soft); color: #14704d; font-size: 11px; font-weight: 700; }
+.item-table { display: grid; gap: 9px; margin-top: 14px; }
+.item-row { border: 1px solid var(--line); border-radius: 13px; padding: 12px; background: #fff; }
+.item-main { display: grid; grid-template-columns: 1fr 90px; gap: 10px; align-items: center; }
+.item-name { font-weight: 800; font-size: 12px; }
+.item-price { text-align: right; font-weight: 800; }
+.assign-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.person-chip { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 9px; font-size: 10px; color: var(--muted); }
+.person-chip.selected { background: var(--brand-soft); border-color: #c5c0ff; color: var(--brand-dark); font-weight: 800; }
+.split-summary { display: grid; gap: 8px; }
+.split-summary-row { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.split-summary-row:last-child { border: 0; }
+.summary-total { display: flex; justify-content: space-between; gap: 10px; padding-top: 14px; margin-top: 5px; border-top: 2px solid var(--ink); font-weight: 850; }
+
+.activity-icon, .notif-icon { width: 35px; height: 35px; border-radius: 11px; display: grid; place-items: center; flex: 0 0 auto; background: var(--surface-2); }
+.notification-row.unread { border-color: #d8d5ff; background: #faf9ff; }
+.notification-row .time { margin-left: auto; font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+.modal-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 18px; background: rgba(15,23,42,.48); backdrop-filter: blur(4px); }
+.modal-backdrop.hidden { display: none; }
+.modal { width: min(520px, 100%); max-height: 88vh; overflow: auto; background: #fff; border-radius: 20px; box-shadow: var(--shadow); padding: 22px; }
+.modal h2 { margin: 0; font-size: 19px; }
+.modal p { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.payment-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.payment-method { border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px; text-align: center; background: #fff; font-size: 11px; font-weight: 800; }
+.payment-method.selected { border-color: #aaa4ff; background: var(--brand-soft); color: var(--brand-dark); }
+
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 120; display: grid; gap: 9px; }
+.toast { min-width: 270px; max-width: 340px; padding: 12px 14px; border-radius: 13px; color: #fff; background: #1d2433; box-shadow: 0 12px 30px rgba(16,24,40,.2); animation: toastIn .22s ease-out; font-size: 12px; }
+.toast strong { display: block; margin-bottom: 3px; }
+@keyframes toastIn { from { transform: translateY(-8px); opacity: 0; } }
+.empty-state { padding: 26px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 14px; font-size: 12px; }
+.mobile-only { display: none; }
+
+@media (max-width: 1050px) {
+  .groups-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-grid, .scan-layout, .detail-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 780px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { position: fixed; left: 0; transform: translateX(-105%); transition: .22s ease; width: 270px; box-shadow: 20px 0 50px rgba(0,0,0,.18); }
+  .sidebar.open { transform: translateX(0); }
+  .mobile-only { display: inline-flex; }
+  .topbar { padding: 16px 18px; height: auto; min-height: 82px; }
+  .topbar h1 { font-size: 19px; }
+  .view { padding: 20px 18px 38px; }
+  .demo-pill { display: none; }
+  .stats-grid, .balance-banner, .groups-grid { grid-template-columns: 1fr; }
+  .group-card { min-height: 165px; }
+  .quick-actions { grid-template-columns: 1fr; }
+  .detail-hero { flex-direction: column; }
+  .hero-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 520px) {
+  .topbar-actions .primary-button { font-size: 0; width: 42px; height: 42px; padding: 0; border-radius: 50%; }
+  .topbar-actions .primary-button::after { content: '+'; font-size: 22px; }
+  .payment-methods { grid-template-columns: 1fr; }
+  .member-row { align-items: flex-start; }
+  .member-actions { flex-direction: column; }
+}
+
+</style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-row">
+        <div class="brand-mark">S</div>
+        <div>
+          <div class="brand-name">SnapSplit</div>
+          <div class="brand-tag">Scan it. Split it. Pay it.</div>
+        </div>
+      </div>
+
+      <nav class="nav-list" aria-label="Main navigation">
+        <button class="nav-item active" data-view="dashboard"><span>⌂</span> Dashboard</button>
+        <button class="nav-item" data-view="groups"><span>◉</span> Groups</button>
+        <button class="nav-item" data-view="scan"><span>▣</span> Scan & Split</button>
+        <button class="nav-item" data-view="activity"><span>↗</span> Activity</button>
+        <button class="nav-item" data-view="notifications"><span>●</span> Notifications <b id="navNotifBadge" class="mini-badge">3</b></button>
+      </nav>
+
+      <div class="sidebar-card">
+        <div class="eyebrow">SMART SETTLEMENT</div>
+        <h3>Fewer awkward transfers</h3>
+        <p>SnapSplit simplifies group balances to the fewest payments possible.</p>
+        <button class="text-button" data-view="groups">See group balances →</button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="avatar">SK</div>
+        <div class="user-meta">
+          <strong>Sanath K.</strong>
+          <span>Already signed in</span>
+        </div>
+        <button id="profileMenuBtn" class="icon-button" aria-label="Profile menu">•••</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button id="mobileMenuBtn" class="icon-button mobile-only" aria-label="Open menu">☰</button>
+        <div>
+          <div class="eyebrow" id="pageEyebrow">OVERVIEW</div>
+          <h1 id="pageTitle">Good evening, Sanath</h1>
+        </div>
+        <div class="topbar-actions">
+          <div class="demo-pill">Prototype mode</div>
+          <button id="quickScanBtn" class="primary-button">＋ Add expense</button>
+        </div>
+      </header>
+
+      <section id="view-dashboard" class="view active-view"></section>
+      <section id="view-groups" class="view"></section>
+      <section id="view-group-detail" class="view"></section>
+      <section id="view-scan" class="view"></section>
+      <section id="view-activity" class="view"></section>
+      <section id="view-notifications" class="view"></section>
+    </main>
+  </div>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <div id="modalBackdrop" class="modal-backdrop hidden">
+    <div id="modal" class="modal" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <input id="receiptFileInput" type="file" accept="image/*" capture="environment" hidden />
+  <script>
+const money = n => `$${Number(n || 0).toFixed(2)}`;
+const nowLabel = () => 'Just now';
+const uid = (prefix='id') => `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+const defaultState = {
+  currentUser: { id: 'me', name: 'Sanath K.', initials: 'SK' },
+  members: [
+    { id: 'me', name: 'Sanath K.', initials: 'SK' },
+    { id: 'riya', name: 'Riya', initials: 'RG' },
+    { id: 'parth', name: 'Parth', initials: 'PC' },
+    { id: 'jian', name: 'Jianpeng', initials: 'JL' },
+    { id: 'sakshi', name: 'Sakshi', initials: 'SS' }
+  ],
+  groups: [
+    {
+      id: 'nyc', name: 'NYC Weekend', emoji: '🗽', note: 'Hotels, food, transit & tickets', memberIds: ['me','riya','parth','jian'],
+      debts: [
+        { id:'d1', from:'riya', to:'me', amount:38.50, status:'open' },
+        { id:'d2', from:'parth', to:'me', amount:22.10, status:'open' },
+        { id:'d3', from:'me', to:'jian', amount:18.00, status:'open' }
+      ],
+      expenses: [
+        { id:'e1', title:'Dinner at Chelsea Market', amount:84.60, payer:'me', date:'Sep 20', category:'Food' },
+        { id:'e2', title:'Subway passes', amount:34.00, payer:'jian', date:'Sep 20', category:'Transit' },
+        { id:'e3', title:'Comedy show tickets', amount:112.00, payer:'me', date:'Sep 19', category:'Tickets' }
+      ],
+      messages: [
+        {id:'m1', sender:'riya', text:'I added the subway stop to our plan.', time:'4:12 PM'},
+        {id:'m2', sender:'me', text:'Perfect — I’ll add dinner once we get the receipt.', time:'4:15 PM'},
+        {id:'m3', system:true, text:'Riya owes Sanath $38.50 for shared expenses.', time:'4:18 PM'}
+      ]
+    },
+    {
+      id: 'apt', name: 'Apartment 4B', emoji: '🏠', note: 'Rent, utilities & shared groceries', memberIds: ['me','parth','sakshi'],
+      debts: [
+        { id:'d4', from:'me', to:'parth', amount:14.75, status:'open' },
+        { id:'d5', from:'sakshi', to:'me', amount:22.00, status:'open' }
+      ],
+      expenses: [
+        { id:'e4', title:'Trader Joe’s groceries', amount:66.00, payer:'me', date:'Sep 21', category:'Groceries' },
+        { id:'e5', title:'Internet bill', amount:59.00, payer:'parth', date:'Sep 18', category:'Utilities' }
+      ],
+      messages: [
+        {id:'m4', sender:'parth', text:'Internet bill is in — added it here.', time:'Yesterday'},
+        {id:'m5', sender:'me', text:'Thanks! I’ll settle mine tonight.', time:'Yesterday'}
+      ]
+    },
+    {
+      id: 'dinner', name: 'Friday Dinner', emoji: '🍕', note: 'Dinner + rides after class', memberIds: ['me','riya','jian'],
+      debts: [
+        { id:'d6', from:'jian', to:'me', amount:25.80, status:'open' }
+      ],
+      expenses: [
+        { id:'e6', title:'Pizza + drinks', amount:77.40, payer:'me', date:'Sep 18', category:'Food' }
+      ],
+      messages: [
+        {id:'m6', sender:'jian', text:'Send me my split when you get a chance.', time:'Sep 18'}
+      ]
+    }
+  ],
+  notifications: [
+    { id:'n1', type:'received', title:'Payment received', text:'Riya sent you $12.00 for Apartment supplies.', time:'28 min ago', unread:true },
+    { id:'n2', type:'reminder', title:'Reminder sent', text:'You reminded Jianpeng about $25.80 in Friday Dinner.', time:'2 hr ago', unread:true },
+    { id:'n3', type:'expense', title:'New split added', text:'Parth added “Internet bill” to Apartment 4B.', time:'Yesterday', unread:true },
+    { id:'n4', type:'sent', title:'Payment sent', text:'You paid Riya $8.25 via Venmo.', time:'Sep 19', unread:false }
+  ],
+  activity: [
+    { id:'a1', type:'expense', title:'Trader Joe’s groceries', detail:'You added $66.00 · Apartment 4B', time:'Yesterday' },
+    { id:'a2', type:'payment', title:'Payment to Riya', detail:'$8.25 via Venmo', time:'Sep 19' },
+    { id:'a3', type:'group', title:'Friday Dinner created', detail:'3 members', time:'Sep 18' }
+  ]
+};
+
+let state = loadState();
+let activeView = 'dashboard';
+let activeGroupId = 'nyc';
+let activeGroupTab = 'overview';
+let scan = resetScanState();
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem('snapsplit_state_v2');
+    return saved ? JSON.parse(saved) : structuredClone(defaultState);
+  } catch { return structuredClone(defaultState); }
+}
+function saveState(){ localStorage.setItem('snapsplit_state_v2', JSON.stringify(state)); }
+function resetScanState(){
+  return {
+    step:1, groupId:'nyc', title:'Dinner receipt', payer:'me', imageUrl:null, fileName:null,
+    items:[
+      {id:'i1', name:'Margherita Pizza', price:18.00, assigned:['me','riya']},
+      {id:'i2', name:'Truffle Fries', price:9.00, assigned:['me','parth']},
+      {id:'i3', name:'Burrata', price:14.00, assigned:['riya','parth']},
+      {id:'i4', name:'Sparkling Water', price:6.00, assigned:['me','riya','parth']}
+    ],
+    tax:4.35, tip:8.00
+  };
+}
+
+function member(id){ return state.members.find(m => m.id === id) || {name:'Unknown', initials:'?'}; }
+function group(id){ return state.groups.find(g => g.id === id); }
+function openDebts(g){ return g.debts.filter(d => d.status === 'open' && d.amount > 0.005); }
+function groupTotals(g){
+  let owed = 0, owe = 0;
+  openDebts(g).forEach(d => {
+    if (d.to === 'me') owed += d.amount;
+    if (d.from === 'me') owe += d.amount;
+  });
+  return { owed, owe, net: owed - owe };
+}
+function globalTotals(){
+  return state.groups.reduce((acc,g) => {
+    const t = groupTotals(g); acc.owed += t.owed; acc.owe += t.owe; return acc;
+  }, {owed:0, owe:0});
+}
+function unreadCount(){ return state.notifications.filter(n=>n.unread).length; }
+function initials(name){ return name.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase(); }
+function escapeHtml(str=''){ return String(str).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;'}[c])); }
+
+function navigate(view, opts={}){
+  activeView = view;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active-view'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===view || (view==='group-detail' && n.dataset.view==='groups')));
+  const el = document.getElementById(`view-${view}`);
+  if(el) el.classList.add('active-view');
+  if(opts.groupId) activeGroupId = opts.groupId;
+  renderAll();
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function setHeader(eyebrow,title){
+  document.getElementById('pageEyebrow').textContent = eyebrow;
+  document.getElementById('pageTitle').textContent = title;
+}
+
+function renderAll(){
+  renderDashboard(); renderGroups(); renderGroupDetail(); renderScan(); renderActivity(); renderNotifications();
+  document.getElementById('navNotifBadge').textContent = unreadCount();
+  document.getElementById('navNotifBadge').style.display = unreadCount() ? 'grid' : 'none';
+  if(activeView==='dashboard') setHeader('OVERVIEW','Good evening, Sanath');
+  if(activeView==='groups') setHeader('GROUPS','Your shared tabs');
+  if(activeView==='group-detail') setHeader('GROUP','Manage this group');
+  if(activeView==='scan') setHeader('SMART SPLIT','Scan a receipt');
+  if(activeView==='activity') setHeader('ACTIVITY','Everything in one timeline');
+  if(activeView==='notifications') setHeader('NOTIFICATIONS','Payments, reminders & updates');
+}
+
+function renderDashboard(){
+  const {owed, owe} = globalTotals();
+  const recent = state.groups.map(g=>({g,t:groupTotals(g)}));
+  const owedTarget = [...recent].filter(x=>x.t.owed>0).sort((a,b)=>b.t.owed-a.t.owed)[0]?.g;
+  const oweTarget = [...recent].filter(x=>x.t.owe>0).sort((a,b)=>b.t.owe-a.t.owe)[0]?.g;
+  const activeTarget = recent[0]?.g;
+  document.getElementById('view-dashboard').innerHTML = `
+    <div class="grid stats-grid">
+      <div class="card stat-card"><div class="stat-icon">↙</div><div class="stat-label">You’re owed</div><div class="stat-value green">${money(owed)}</div><div class="stat-meta">Across ${state.groups.filter(g=>groupTotals(g).owed>0).length} active groups</div>${owedTarget?`<button class="stat-action" onclick="openGroup('${owedTarget.id}','payments')">View who owes you →</button>`:''}</div>
+      <div class="card stat-card"><div class="stat-icon">↗</div><div class="stat-label">You owe</div><div class="stat-value red">${money(owe)}</div><div class="stat-meta">Settle without leaving SnapSplit</div>${oweTarget?`<button class="stat-action danger-link" onclick="openGroup('${oweTarget.id}','payments')">Review & pay →</button>`:''}</div>
+      <div class="card stat-card"><div class="stat-icon">◎</div><div class="stat-label">Active groups</div><div class="stat-value">${state.groups.length}</div><div class="stat-meta">${state.groups.reduce((s,g)=>s+g.memberIds.length,0)} total group memberships</div>${activeTarget?`<button class="stat-action" onclick="openGroup('${activeTarget.id}')">Open active group →</button>`:''}</div>
+    </div>
+
+    <div class="grid dashboard-grid">
+      <div class="card section-card">
+        <div class="section-head"><div><h2>Recent groups</h2><div class="section-sub">Balances update as payments are recorded</div></div><button class="ghost-button small-button" onclick="navigate('groups')">View all</button></div>
+        <div class="group-list">
+          ${recent.map(({g,t})=>`
+          <button class="group-row" onclick="openGroup('${g.id}')">
+            <div class="group-icon">${g.emoji}</div>
+            <div style="text-align:left"><h4>${escapeHtml(g.name)}</h4><p>${g.memberIds.length} members · ${g.expenses.length} expenses</p></div>
+            <div class="money-state">${t.net>=0?`<strong class="green">+${money(t.net)}</strong><span>net owed to you</span>`:`<strong class="red">-${money(Math.abs(t.net))}</strong><span>net you owe</span>`}</div>
+          </button>`).join('')}
+        </div>
+      </div>
+
+      <div>
+        <div class="card section-card">
+          <div class="section-head"><div><h2>Quick actions</h2><div class="section-sub">From receipt to repayment</div></div></div>
+          <div class="quick-actions">
+            <button class="quick-action" onclick="startScan()"><div class="qa-icon">▣</div><strong>Scan receipt</strong><span>Detect items, assign people, split tax & tip.</span></button>
+            <button class="quick-action" onclick="openCreateGroup()"><div class="qa-icon">＋</div><strong>New group</strong><span>Create a shared tab and invite friends.</span></button>
+            <button class="quick-action" onclick="openGroup('nyc','payments')"><div class="qa-icon">$</div><strong>Settle up</strong><span>Pay directly from the group balance.</span></button>
+            <button class="quick-action" onclick="navigate('notifications')"><div class="qa-icon">●</div><strong>Notifications</strong><span>Track sent, received and reminder updates.</span></button>
+          </div>
+          <div class="insight-card"><div class="eyebrow">VALUE ADD</div><h3>One settlement layer, not three separate apps.</h3><p>Splitting, reminders, payment status and group chat stay connected to the same expense history.</p></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderGroups(){
+  document.getElementById('view-groups').innerHTML = `
+    <div class="section-head"><div><h2>Your groups</h2><div class="section-sub">Trips, dinners, roommates and anything shared</div></div><button class="primary-button" onclick="openCreateGroup()">＋ Create group</button></div>
+    <div class="grid groups-grid">
+      ${state.groups.map(g=>{
+        const t=groupTotals(g); return `
+        <div class="card group-card">
+          <div class="group-icon">${g.emoji}</div>
+          <h3>${escapeHtml(g.name)}</h3><p>${escapeHtml(g.note||'Shared expenses')}</p>
+          <div style="margin:14px 0 0; font-size:12px">${t.net>=0?`<span class="green"><b>${money(t.net)}</b> net owed to you</span>`:`<span class="red"><b>${money(Math.abs(t.net))}</b> net you owe</span>`}</div>
+          <div class="group-card-footer">
+            <div class="avatar-stack">${g.memberIds.slice(0,4).map(id=>`<div class="mini-avatar" title="${escapeHtml(member(id).name)}">${member(id).initials}</div>`).join('')}</div>
+            <button class="ghost-button small-button" onclick="openGroup('${g.id}')">Open →</button>
+          </div>
+        </div>`}).join('')}
+    </div>`;
+}
+
+function openGroup(id, tab='overview'){ activeGroupId=id; activeGroupTab=tab; navigate('group-detail',{groupId:id}); }
+function renderGroupDetail(){
+  const g=group(activeGroupId) || state.groups[0]; if(!g) return;
+  const t=groupTotals(g);
+  const totalSpent=g.expenses.reduce((s,e)=>s+e.amount,0);
+  const content = activeGroupTab==='overview' ? renderOverviewTab(g) : activeGroupTab==='expenses' ? renderExpensesTab(g) : activeGroupTab==='chat' ? renderChatTab(g) : renderPaymentsTab(g);
+  document.getElementById('view-group-detail').innerHTML = `
+    <div class="card detail-hero">
+      <div class="detail-title"><div class="group-icon">${g.emoji}</div><div><h2>${escapeHtml(g.name)}</h2><p>${escapeHtml(g.note||'Shared group')} · ${g.memberIds.length} members</p></div></div>
+      <div class="hero-actions"><button class="ghost-button small-button" onclick="openAddMember('${g.id}')">＋ Add member</button><button class="secondary-button small-button" onclick="startScan('${g.id}')">▣ Scan receipt</button><button class="primary-button small-button" onclick="setGroupTab('payments')">Settle up</button></div>
+    </div>
+    <div class="balance-banner">
+      <div class="balance-tile"><span>Total group spend</span><strong>${money(totalSpent)}</strong></div>
+      <div class="balance-tile"><span>You’re owed</span><strong class="green">${money(t.owed)}</strong></div>
+      <div class="balance-tile"><span>You owe</span><strong class="red">${money(t.owe)}</strong></div>
+    </div>
+    <div class="tabs">
+      ${[['overview','Overview'],['expenses','Expenses'],['chat','Group chat'],['payments','Payments']].map(([k,l])=>`<button class="tab ${activeGroupTab===k?'active':''}" onclick="setGroupTab('${k}')">${l}</button>`).join('')}
+    </div>
+    ${content}`;
+}
+function setGroupTab(tab){ activeGroupTab=tab; renderGroupDetail(); }
+
+function renderOverviewTab(g){
+  return `<div class="grid detail-grid">
+    <div class="card section-card">
+      <div class="section-head"><div><h2>Who owes what</h2><div class="section-sub">One place for balances, reminders and settlement</div></div></div>
+      <div class="member-list">
+        ${g.memberIds.map(id=>renderMemberBalanceRow(g,id)).join('')}
+      </div>
+    </div>
+    <div class="card section-card">
+      <div class="section-head"><div><h3>Smart settlement</h3><div class="section-sub">Minimize the number of payments</div></div></div>
+      ${renderSettlementSuggestion(g)}
+      <div class="insight-card" style="margin-top:14px"><div class="eyebrow">WHY IT HELPS</div><h3>Less chasing, less app switching.</h3><p>Every reminder and payment stays attached to the group, so context is never lost.</p></div>
+    </div>
+  </div>`;
+}
+
+function renderMemberBalanceRow(g,id){
+  const m=member(id); if(id==='me'){
+    const t=groupTotals(g);
+    return `<div class="member-row"><div class="mini-avatar">${m.initials}</div><div class="member-info"><strong>${m.name} (You)</strong><span>Your net position in this group</span></div>${t.net>=0?`<span class="status-pill owed">+${money(t.net)}</span>`:`<span class="status-pill owe">-${money(Math.abs(t.net))}</span>`}</div>`;
+  }
+  const owesMe=openDebts(g).filter(d=>d.from===id&&d.to==='me').reduce((s,d)=>s+d.amount,0);
+  const iOwe=openDebts(g).filter(d=>d.from==='me'&&d.to===id).reduce((s,d)=>s+d.amount,0);
+  let status=`<span class="status-pill settled">Settled</span>`, actions='';
+  if(owesMe>0){ status=`<span class="status-pill owed">Owes you ${money(owesMe)}</span>`; actions=`<button class="ghost-button small-button" onclick="sendReminder('${g.id}','${id}',${owesMe})">Remind</button><button class="secondary-button small-button" onclick="recordIncoming('${g.id}','${id}',${owesMe})">Record paid</button>`; }
+  if(iOwe>0){ status=`<span class="status-pill owe">You owe ${money(iOwe)}</span>`; actions=`<button class="primary-button small-button" onclick="openPayment('${g.id}','${id}',${iOwe})">Pay</button>`; }
+  return `<div class="member-row"><div class="mini-avatar">${m.initials}</div><div class="member-info"><strong>${escapeHtml(m.name)}</strong><span>${status}</span></div><div class="member-actions">${actions}</div></div>`;
+}
+
+function renderSettlementSuggestion(g){
+  const debts=openDebts(g);
+  if(!debts.length) return `<div class="empty-state">Everyone is settled 🎉</div>`;
+  const top=debts.slice().sort((a,b)=>b.amount-a.amount).slice(0,3);
+  return `<div class="split-summary">${top.map(d=>`<div class="split-summary-row"><span>${member(d.from).name} → ${member(d.to).name}</span><strong>${money(d.amount)}</strong></div>`).join('')}</div><div style="margin-top:12px;color:var(--muted);font-size:11px">SnapSplit can simplify circular debts before anyone pays.</div>`;
+}
+
+function renderExpensesTab(g){
+  return `<div class="card section-card">
+    <div class="section-head"><div><h2>Expense history</h2><div class="section-sub">Receipts and splits stay attached to the group</div></div><button class="secondary-button small-button" onclick="startScan('${g.id}')">＋ Add receipt</button></div>
+    <div class="expense-list">${g.expenses.length?g.expenses.slice().reverse().map(e=>`<div class="expense-row"><div class="activity-icon">${e.category==='Food'?'🍽️':e.category==='Transit'?'🚇':e.category==='Tickets'?'🎟️':'🧾'}</div><div class="activity-info"><strong>${escapeHtml(e.title)}</strong><span>Paid by ${member(e.payer).name} · ${e.date}</span></div><div style="font-weight:850">${money(e.amount)}</div></div>`).join(''):`<div class="empty-state">No expenses yet.</div>`}</div>
+  </div>`;
+}
+
+function renderChatTab(g){
+  return `<div class="card section-card chat-box">
+    <div class="section-head"><div><h2>Group chat</h2><div class="section-sub">Discuss the trip and keep payment context in the same place</div></div></div>
+    <div class="chat-messages" id="chatMessages">${g.messages.map(msg=>{
+      if(msg.system) return `<div class="message system">${escapeHtml(msg.text)} <small>${msg.time}</small></div>`;
+      const me=msg.sender==='me'; return `<div class="message ${me?'me':''}">${!me?`<b>${escapeHtml(member(msg.sender).name)}</b><br>`:''}${escapeHtml(msg.text)}<small>${msg.time}</small></div>`;
+    }).join('')}</div>
+    <div class="chat-input-row"><input id="chatInput" class="input" placeholder="Message ${escapeHtml(g.name)}…" onkeydown="if(event.key==='Enter') sendChat('${g.id}')"><button class="primary-button" onclick="sendChat('${g.id}')">Send</button></div>
+  </div>`;
+}
+
+function renderPaymentsTab(g){
+  const debts=openDebts(g);
+  return `<div class="grid detail-grid">
+    <div class="card section-card">
+      <div class="section-head"><div><h2>Open settlements</h2><div class="section-sub">Pay or record a payment without leaving the group</div></div></div>
+      <div class="member-list">${debts.length?debts.map(d=>`
+        <div class="member-row"><div class="mini-avatar">${member(d.from).initials}</div><div class="member-info"><strong>${member(d.from).name} → ${member(d.to).name}</strong><span>${d.from==='me'?'You need to pay':d.to==='me'?'You are waiting to receive':'Group settlement'}</span></div><strong>${money(d.amount)}</strong><div class="member-actions">${d.from==='me'?`<button class="primary-button small-button" onclick="openPayment('${g.id}','${d.to}',${d.amount},'${d.id}')">Pay</button>`:d.to==='me'?`<button class="ghost-button small-button" onclick="sendReminder('${g.id}','${d.from}',${d.amount})">Remind</button><button class="secondary-button small-button" onclick="recordIncoming('${g.id}','${d.from}',${d.amount},'${d.id}')">Record paid</button>`:''}</div></div>`).join(''):`<div class="empty-state">All settled. Nothing left to pay 🎉</div>`}</div>
+    </div>
+    <div class="card section-card">
+      <div class="section-head"><div><h3>Connected payment options</h3><div class="section-sub">Prototype integration layer</div></div></div>
+      <div class="payment-methods"><div class="payment-method selected">Venmo<br><span style="font-weight:500;color:var(--muted)">Connected</span></div><div class="payment-method">Zelle<br><span style="font-weight:500;color:var(--muted)">Ready</span></div><div class="payment-method">Bank<br><span style="font-weight:500;color:var(--muted)">Ready</span></div></div>
+      <p style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.55">In a production product, bank/payment-provider authorization happens securely outside SnapSplit. This class prototype simulates the successful payment flow.</p>
+    </div>
+  </div>`;
+}
+
+function startScan(groupId){
+  scan=resetScanState(); if(groupId) scan.groupId=groupId; navigate('scan');
+}
+
+function renderScan(){
+  const g=group(scan.groupId) || state.groups[0];
+  const step1 = scan.step===1 ? renderScanStep1(g) : scan.step===2 ? renderScanStep2(g) : renderScanStep3(g);
+  document.getElementById('view-scan').innerHTML = `
+    <div class="stepper"><div class="step-dot ${scan.step>=1?'active':''}">1</div><div class="step-line"></div><div class="step-dot ${scan.step>=2?'active':''}">2</div><div class="step-line"></div><div class="step-dot ${scan.step>=3?'active':''}">3</div></div>
+    ${step1}`;
+}
+function renderScanStep1(g){
+  return `<div class="grid scan-layout">
+    <div class="card section-card">
+      <div class="section-head"><div><h2>Upload or scan a receipt</h2><div class="section-sub">SnapSplit reads the items, then you confirm the split</div></div></div>
+      <div class="field"><label class="field-label">Group</label><select class="input" onchange="scan.groupId=this.value; renderScan()">${state.groups.map(x=>`<option value="${x.id}" ${scan.groupId===x.id?'selected':''}>${escapeHtml(x.name)}</option>`).join('')}</select></div>
+      <div class="upload-zone" onclick="document.getElementById('receiptFileInput').click()">
+        ${scan.imageUrl?`<img class="receipt-preview" src="${scan.imageUrl}" alt="Uploaded receipt preview">`:`<><div class="upload-icon">▣</div><h3>Tap to scan or upload</h3><p>Use your camera on mobile, or choose a receipt image.</p></>`}
+      </div>
+      ${scan.fileName?`<div class="scan-status">✓ Receipt loaded: ${escapeHtml(scan.fileName)} · item detection ready</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="ghost-button" onclick="useDemoReceipt()">Use demo receipt</button>${scan.fileName?`<button class="primary-button" onclick="scan.step=2; renderScan()">Detect items →</button>`:''}</div>
+    </div>
+    <div class="card section-card">
+      <div class="section-head"><div><h3>How smart split works</h3></div></div>
+      <div class="split-summary">
+        <div class="split-summary-row"><span>1. Read receipt</span><strong>OCR</strong></div>
+        <div class="split-summary-row"><span>2. Confirm items</span><strong>Edit anytime</strong></div>
+        <div class="split-summary-row"><span>3. Assign people</span><strong>Item-level</strong></div>
+        <div class="split-summary-row"><span>4. Allocate tax & tip</span><strong>Proportionally</strong></div>
+      </div>
+      <div class="insight-card"><div class="eyebrow">MVP VALUE</div><h3>Fairer than equal splitting.</h3><p>Each person pays for what they actually shared, while tax and tip follow their item subtotal.</p></div>
+    </div>
+  </div>`;
+}
+function renderScanStep2(g){
+  return `<div class="grid scan-layout">
+    <div class="card section-card">
+      <div class="section-head"><div><h2>Review detected items</h2><div class="section-sub">Correct anything before assigning the split</div></div><span class="status-pill owed">✓ ${scan.items.length} items detected</span></div>
+      <div class="field"><label class="field-label">Expense title</label><input class="input" value="${escapeHtml(scan.title)}" oninput="scan.title=this.value"></div>
+      <div class="field"><label class="field-label">Paid by</label><select class="input" onchange="scan.payer=this.value">${g.memberIds.map(id=>`<option value="${id}" ${scan.payer===id?'selected':''}>${escapeHtml(member(id).name)}${id==='me'?' (You)':''}</option>`).join('')}</select></div>
+      <div class="item-table">${scan.items.map((it,i)=>`<div class="item-row"><div class="item-main"><input class="input" value="${escapeHtml(it.name)}" oninput="scan.items[${i}].name=this.value"><input class="input" type="number" min="0" step="0.01" value="${it.price.toFixed(2)}" oninput="scan.items[${i}].price=Number(this.value)"></div></div>`).join('')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px"><div><label class="field-label">Tax</label><input class="input" type="number" step="0.01" value="${scan.tax.toFixed(2)}" oninput="scan.tax=Number(this.value)"></div><div><label class="field-label">Tip</label><input class="input" type="number" step="0.01" value="${scan.tip.toFixed(2)}" oninput="scan.tip=Number(this.value)"></div></div>
+      <div class="modal-actions"><button class="ghost-button" onclick="scan.step=1; renderScan()">Back</button><button class="primary-button" onclick="scan.step=3; ensureAssignments(); renderScan()">Assign people →</button></div>
+    </div>
+    <div class="card section-card"><div class="section-head"><div><h3>Detected total</h3></div></div>${renderReceiptTotal()}</div>
+  </div>`;
+}
+function renderScanStep3(g){
+  return `<div class="grid scan-layout">
+    <div class="card section-card">
+      <div class="section-head"><div><h2>Assign items to people</h2><div class="section-sub">Tap everyone who shared each item</div></div></div>
+      <div class="item-table">${scan.items.map((it,i)=>`<div class="item-row"><div class="item-main"><div><div class="item-name">${escapeHtml(it.name)}</div><div style="font-size:10px;color:var(--muted);margin-top:3px">Split equally among selected people</div></div><div class="item-price">${money(it.price)}</div></div><div class="assign-row">${g.memberIds.map(id=>`<button class="person-chip ${it.assigned.includes(id)?'selected':''}" onclick="toggleAssignment(${i},'${id}')">${member(id).name}${id==='me'?' (You)':''}</button>`).join('')}</div></div>`).join('')}</div>
+      <div class="modal-actions"><button class="ghost-button" onclick="scan.step=2; renderScan()">Back</button><button class="primary-button" onclick="saveScannedExpense()">Save split & notify group</button></div>
+    </div>
+    <div class="card section-card"><div class="section-head"><div><h3>Split preview</h3><div class="section-sub">Tax and tip allocated proportionally</div></div></div>${renderSplitPreview(g)}</div>
+  </div>`;
+}
+function ensureAssignments(){
+  const g=group(scan.groupId); scan.items.forEach(it=>{ it.assigned=it.assigned.filter(id=>g.memberIds.includes(id)); if(!it.assigned.length) it.assigned=[scan.payer]; });
+}
+function toggleAssignment(i,id){ const a=scan.items[i].assigned; if(a.includes(id)){ if(a.length>1) scan.items[i].assigned=a.filter(x=>x!==id); } else a.push(id); renderScan(); }
+function receiptSubtotal(){ return scan.items.reduce((s,i)=>s+Number(i.price||0),0); }
+function receiptTotal(){ return receiptSubtotal()+Number(scan.tax||0)+Number(scan.tip||0); }
+function renderReceiptTotal(){ return `<div class="split-summary"><div class="split-summary-row"><span>Items</span><strong>${money(receiptSubtotal())}</strong></div><div class="split-summary-row"><span>Tax</span><strong>${money(scan.tax)}</strong></div><div class="split-summary-row"><span>Tip</span><strong>${money(scan.tip)}</strong></div><div class="summary-total"><span>Total</span><span>${money(receiptTotal())}</span></div></div>`; }
+function computeShares(g){
+  const base={}; g.memberIds.forEach(id=>base[id]=0);
+  scan.items.forEach(it=>{ const ids=it.assigned.length?it.assigned:[scan.payer]; const each=Number(it.price||0)/ids.length; ids.forEach(id=>base[id]=(base[id]||0)+each); });
+  const subtotal=receiptSubtotal(); const extras=Number(scan.tax||0)+Number(scan.tip||0);
+  const shares={}; Object.entries(base).forEach(([id,b])=> shares[id]= b + (subtotal>0 ? extras*(b/subtotal) : 0));
+  return shares;
+}
+function renderSplitPreview(g){ const shares=computeShares(g); return `<div class="split-summary">${g.memberIds.filter(id=>shares[id]>0.005).map(id=>`<div class="split-summary-row"><span>${member(id).name}${id==='me'?' (You)':''}</span><strong>${money(shares[id])}</strong></div>`).join('')}<div class="summary-total"><span>Total</span><span>${money(Object.values(shares).reduce((s,n)=>s+n,0))}</span></div></div>`; }
+
+function useDemoReceipt(){ scan.fileName='demo-pizza-receipt.jpg'; scan.imageUrl=null; scan.step=2; toast('Receipt detected','4 items, tax and tip were identified.'); renderScan(); }
+document.getElementById('receiptFileInput').addEventListener('change', (e)=>{
+  const file=e.target.files?.[0]; if(!file) return; const r=new FileReader(); r.onload=()=>{ scan.imageUrl=r.result; scan.fileName=file.name; renderScan(); toast('Receipt uploaded','Prototype OCR is ready to detect the demo line items.'); }; r.readAsDataURL(file);
+});
+
+function saveScannedExpense(){
+  const g=group(scan.groupId); const shares=computeShares(g); const total=receiptTotal();
+  g.expenses.push({ id:uid('e'), title:scan.title||'Scanned receipt', amount:total, payer:scan.payer, date:'Today', category:'Food' });
+  Object.entries(shares).forEach(([id,amt])=>{
+    if(id===scan.payer || amt<=0.005) return;
+    const existing=g.debts.find(d=>d.status==='open' && d.from===id && d.to===scan.payer);
+    const opposite=g.debts.find(d=>d.status==='open' && d.from===scan.payer && d.to===id);
+    if(opposite){
+      if(opposite.amount>amt) opposite.amount-=amt;
+      else if(opposite.amount<amt){ const rem=amt-opposite.amount; opposite.status='settled'; g.debts.push({id:uid('d'),from:id,to:scan.payer,amount:rem,status:'open'}); }
+      else opposite.status='settled';
+    } else if(existing) existing.amount+=amt;
+    else g.debts.push({id:uid('d'),from:id,to:scan.payer,amount:amt,status:'open'});
+  });
+  g.messages.push({id:uid('m'),system:true,text:`${member(scan.payer).name} added “${scan.title||'Scanned receipt'}” for ${money(total)}. Balances updated.`,time:nowLabel()});
+  state.activity.unshift({id:uid('a'),type:'expense',title:scan.title||'Scanned receipt',detail:`${money(total)} · ${g.name}`,time:'Just now'});
+  state.notifications.unshift({id:uid('n'),type:'expense',title:'Split saved',text:`${scan.title||'Receipt'} was added to ${g.name}. Everyone’s balance was updated.`,time:'Just now',unread:true});
+  saveState(); toast('Split saved','Group balances and notifications were updated.'); activeGroupTab='overview'; openGroup(g.id);
+}
+
+function renderActivity(){
+  document.getElementById('view-activity').innerHTML=`<div class="card section-card"><div class="section-head"><div><h2>Activity</h2><div class="section-sub">Expense, payment and group events</div></div></div><div class="activity-list">${state.activity.map(a=>`<div class="activity-row"><div class="activity-icon">${a.type==='payment'?'$':a.type==='expense'?'🧾':'◉'}</div><div class="activity-info"><strong>${escapeHtml(a.title)}</strong><span>${escapeHtml(a.detail)}</span></div><span style="font-size:10px;color:var(--muted)">${a.time}</span></div>`).join('')}</div></div>`;
+}
+function renderNotifications(){
+  document.getElementById('view-notifications').innerHTML=`<div class="card section-card"><div class="section-head"><div><h2>Notifications</h2><div class="section-sub">Payment confirmations, reminders and balance changes</div></div><button class="ghost-button small-button" onclick="markAllRead()">Mark all read</button></div><div class="notification-list">${state.notifications.map(n=>`<div class="notification-row ${n.unread?'unread':''}" onclick="readNotification('${n.id}')"><div class="notif-icon">${n.type==='received'?'↓':n.type==='sent'?'↑':n.type==='reminder'?'⏰':'🧾'}</div><div class="activity-info"><strong>${escapeHtml(n.title)}</strong><span>${escapeHtml(n.text)}</span></div><div class="time">${n.time}</div></div>`).join('')}</div></div>`;
+}
+function markAllRead(){ state.notifications.forEach(n=>n.unread=false); saveState(); renderAll(); }
+function readNotification(id){ const n=state.notifications.find(x=>x.id===id); if(n)n.unread=false; saveState(); renderNotifications(); document.getElementById('navNotifBadge').textContent=unreadCount(); }
+
+function openCreateGroup(){
+  showModal(`<h2>Create a group</h2><p>Start a shared tab for a trip, dinner, apartment or event.</p><div class="field"><label class="field-label">Group name</label><input id="newGroupName" class="input" placeholder="e.g. Vegas Weekend"></div><div class="field"><label class="field-label">What is it for?</label><input id="newGroupNote" class="input" placeholder="Food, hotel, rides & tickets"></div><div class="field"><label class="field-label">Icon</label><select id="newGroupEmoji" class="input"><option>✈️</option><option>🍽️</option><option>🏠</option><option>🎓</option><option>🎉</option></select></div><div class="modal-actions"><button class="ghost-button" onclick="closeModal()">Cancel</button><button class="primary-button" onclick="createGroup()">Create group</button></div>`);
+}
+function createGroup(){
+  const name=document.getElementById('newGroupName').value.trim(); if(!name){ toast('Add a group name','Give this shared tab a name first.'); return; }
+  const g={id:uid('g'),name,emoji:document.getElementById('newGroupEmoji').value,note:document.getElementById('newGroupNote').value.trim()||'Shared expenses',memberIds:['me'],debts:[],expenses:[],messages:[{id:uid('m'),system:true,text:`${name} was created. Invite friends to start splitting.`,time:'Just now'}]};
+  state.groups.unshift(g); state.activity.unshift({id:uid('a'),type:'group',title:`${name} created`,detail:'1 member',time:'Just now'}); saveState(); closeModal(); toast('Group created','Add members and start your shared tab.'); openGroup(g.id);
+}
+
+function openAddMember(groupId){
+  const g=group(groupId); showModal(`<h2>Add a member</h2><p>Invite someone into ${escapeHtml(g.name)}. For the prototype, the new member appears immediately.</p><div class="field"><label class="field-label">Name</label><input id="memberName" class="input" placeholder="Friend’s name"></div><div class="field"><label class="field-label">Email or phone (optional)</label><input id="memberContact" class="input" placeholder="friend@example.com"></div><div class="modal-actions"><button class="ghost-button" onclick="closeModal()">Cancel</button><button class="primary-button" onclick="addMember('${groupId}')">Add & invite</button></div>`);
+}
+function addMember(groupId){
+  const name=document.getElementById('memberName').value.trim(); if(!name){toast('Add a name','Enter the person you want to invite.');return;}
+  const id=uid('u'); state.members.push({id,name,initials:initials(name)}); const g=group(groupId); g.memberIds.push(id); g.messages.push({id:uid('m'),system:true,text:`${name} joined the group.`,time:'Just now'}); state.notifications.unshift({id:uid('n'),type:'expense',title:'Member added',text:`${name} was invited to ${g.name}.`,time:'Just now',unread:true}); saveState(); closeModal(); toast('Member added',`${name} can now be assigned to expenses.`); renderAll();
+}
+
+function sendChat(groupId){
+  const input=document.getElementById('chatInput'); const text=input?.value.trim(); if(!text)return; const g=group(groupId); g.messages.push({id:uid('m'),sender:'me',text,time:'Just now'}); saveState(); renderGroupDetail(); setTimeout(()=>{ const box=document.getElementById('chatMessages'); if(box)box.scrollTop=box.scrollHeight; },0);
+}
+function sendReminder(groupId,memberId,amount){
+  const g=group(groupId), m=member(memberId); g.messages.push({id:uid('m'),system:true,text:`Payment reminder sent to ${m.name} for ${money(amount)}.`,time:'Just now'}); state.notifications.unshift({id:uid('n'),type:'reminder',title:'Reminder sent',text:`You reminded ${m.name} to pay ${money(amount)} in ${g.name}.`,time:'Just now',unread:true}); state.activity.unshift({id:uid('a'),type:'payment',title:`Reminder to ${m.name}`,detail:`${money(amount)} · ${g.name}`,time:'Just now'}); saveState(); toast('Reminder sent',`${m.name} will see the amount and a one-tap Pay button.`); renderAll();
+}
+
+let paymentDraft={};
+function openPayment(groupId,toId,amount,debtId=null){
+  paymentDraft={groupId,toId,amount:Number(amount),method:'Venmo',debtId};
+  showModal(`<h2>Pay ${escapeHtml(member(toId).name)}</h2><p>Settle inside the group. The recipient will get a payment confirmation and the group balance will update automatically.</p><div class="field"><label class="field-label">Amount</label><input id="paymentAmount" class="input" type="number" step="0.01" value="${Number(amount).toFixed(2)}"></div><div class="field"><label class="field-label">Payment method</label><div class="payment-methods">${['Venmo','Zelle','Bank transfer'].map((m,i)=>`<button class="payment-method ${i===0?'selected':''}" onclick="selectPaymentMethod(this,'${m}')">${m}</button>`).join('')}</div></div><div class="field"><label class="field-label">Note</label><input id="paymentNote" class="input" value="SnapSplit settlement"></div><div class="modal-actions"><button class="ghost-button" onclick="closeModal()">Cancel</button><button class="primary-button" onclick="confirmPayment()">Send payment</button></div>`);
+}
+function selectPaymentMethod(el,method){ paymentDraft.method=method; document.querySelectorAll('.payment-method').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); }
+function confirmPayment(){
+  const amount=Math.max(0,Number(document.getElementById('paymentAmount').value||0)); if(!amount){toast('Enter an amount','Payment amount must be greater than $0.');return;}
+  const g=group(paymentDraft.groupId), to=paymentDraft.toId; let debt=paymentDraft.debtId?g.debts.find(d=>d.id===paymentDraft.debtId):g.debts.find(d=>d.status==='open'&&d.from==='me'&&d.to===to);
+  if(debt){ debt.amount=Math.max(0,debt.amount-amount); if(debt.amount<0.01) debt.status='settled'; }
+  g.messages.push({id:uid('m'),system:true,text:`Sanath paid ${member(to).name} ${money(amount)} via ${paymentDraft.method}.`,time:'Just now'});
+  state.notifications.unshift({id:uid('n'),type:'sent',title:'Payment sent',text:`You sent ${member(to).name} ${money(amount)} via ${paymentDraft.method}.`,time:'Just now',unread:true});
+  state.activity.unshift({id:uid('a'),type:'payment',title:`Payment to ${member(to).name}`,detail:`${money(amount)} via ${paymentDraft.method} · ${g.name}`,time:'Just now'});
+  saveState(); closeModal(); toast('Payment sent',`${member(to).name} was notified and your balance was updated.`); renderAll();
+}
+function recordIncoming(groupId,fromId,amount,debtId=null){
+  const g=group(groupId); let debt=debtId?g.debts.find(d=>d.id===debtId):g.debts.find(d=>d.status==='open'&&d.from===fromId&&d.to==='me'); if(debt) debt.status='settled';
+  g.messages.push({id:uid('m'),system:true,text:`Payment received from ${member(fromId).name}: ${money(amount)}.`,time:'Just now'});
+  state.notifications.unshift({id:uid('n'),type:'received',title:'Payment received',text:`${member(fromId).name} sent you ${money(amount)} in ${g.name}.`,time:'Just now',unread:true});
+  state.activity.unshift({id:uid('a'),type:'payment',title:`Payment from ${member(fromId).name}`,detail:`${money(amount)} received · ${g.name}`,time:'Just now'});
+  saveState(); toast('Payment received',`${member(fromId).name} is now settled for this balance.`); renderAll();
+}
+
+function showModal(html){ document.getElementById('modal').innerHTML=html; document.getElementById('modalBackdrop').classList.remove('hidden'); }
+function closeModal(){ document.getElementById('modalBackdrop').classList.add('hidden'); }
+document.getElementById('modalBackdrop').addEventListener('click',e=>{ if(e.target.id==='modalBackdrop')closeModal(); });
+
+function toast(title,text){
+  const el=document.createElement('div'); el.className='toast'; el.innerHTML=`<strong>${escapeHtml(title)}</strong>${escapeHtml(text)}`; document.getElementById('toastContainer').appendChild(el); setTimeout(()=>el.remove(),3500);
+}
+
+window.navigate=navigate; window.openGroup=openGroup; window.setGroupTab=setGroupTab; window.startScan=startScan; window.useDemoReceipt=useDemoReceipt; window.toggleAssignment=toggleAssignment; window.saveScannedExpense=saveScannedExpense; window.openCreateGroup=openCreateGroup; window.createGroup=createGroup; window.openAddMember=openAddMember; window.addMember=addMember; window.sendChat=sendChat; window.sendReminder=sendReminder; window.openPayment=openPayment; window.selectPaymentMethod=selectPaymentMethod; window.confirmPayment=confirmPayment; window.recordIncoming=recordIncoming; window.closeModal=closeModal; window.markAllRead=markAllRead; window.readNotification=readNotification;
+
+document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>navigate(btn.dataset.view)));
+document.querySelectorAll('[data-view]').forEach(btn=>{ if(!btn.classList.contains('nav-item')) btn.addEventListener('click',()=>navigate(btn.dataset.view)); });
+document.getElementById('quickScanBtn').addEventListener('click',()=>startScan());
+document.getElementById('mobileMenuBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
+document.getElementById('profileMenuBtn').addEventListener('click',()=>showModal(`<h2>Prototype profile</h2><p>You are already signed in as Sanath K. This keeps the demo focused on the core product flow.</p><div class="field"><label class="field-label">Connected payment methods</label><div class="payment-methods"><div class="payment-method selected">Venmo</div><div class="payment-method">Zelle</div><div class="payment-method">Bank</div></div></div><div class="modal-actions"><button class="danger-button" onclick="localStorage.removeItem('snapsplit_state_v2'); location.reload()">Reset demo</button><button class="primary-button" onclick="closeModal()">Done</button></div>`));
+
+renderAll();
+
+</script>
+</body>
+</html>
